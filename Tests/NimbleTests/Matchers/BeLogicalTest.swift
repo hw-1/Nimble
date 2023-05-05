@@ -1,9 +1,6 @@
 import XCTest
 import Nimble
 import Foundation
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
 enum ConvertsToBool: ExpressibleByBooleanLiteral, CustomStringConvertible {
     case trueLike, falseLike

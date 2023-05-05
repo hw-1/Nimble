@@ -1,9 +1,6 @@
 import Foundation
 import XCTest
 import Nimble
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
 final class SynchronousTest: XCTestCase {
     class Error: Swift.Error {}

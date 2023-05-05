@@ -1,9 +1,6 @@
 import Foundation
 import XCTest
 import Nimble
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
 private protocol TestProtocol {}
 private class TestClassConformingToProtocol: TestProtocol {}

@@ -1,9 +1,6 @@
 import Foundation
 import XCTest
 import Nimble
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
 final class BeCloseToTest: XCTestCase {
     func testBeCloseTo() {
@@ -43,7 +40,6 @@ final class BeCloseToTest: XCTestCase {
         }
     }
 
-    #if !os(WASI)
     func testBeCloseToWithDate() {
         expect(Date(dateTimeString: "2015-08-26 11:43:00")).to(beCloseTo(Date(dateTimeString: "2015-08-26 11:43:05"), within: 10))
 
@@ -62,7 +58,6 @@ final class BeCloseToTest: XCTestCase {
             expect(NSDate(dateTimeString: "2015-08-26 11:43:00")).toNot(beCloseTo(expectedDate, within: 0.006))
         }
     }
-    #endif
 
     func testBeCloseToOperator() {
         expect(1.2) ≈ 1.2001
@@ -97,7 +92,6 @@ final class BeCloseToTest: XCTestCase {
         }
     }
 
-    #if !os(WASI)
     func testBeCloseToOperatorWithDate() {
         expect(Date(dateTimeString: "2015-08-26 11:43:00")) ≈ Date(dateTimeString: "2015-08-26 11:43:00")
 
@@ -134,7 +128,6 @@ final class BeCloseToTest: XCTestCase {
             expect(Date(dateTimeString: "2015-08-26 11:43:00")) == expectedDate ± 0.004
         }
     }
-    #endif // #if !os(WASI)
 
     func testBeCloseToArray() {
         expect([0.0, 1.1, 2.2]) ≈ [0.0001, 1.1001, 2.2001]

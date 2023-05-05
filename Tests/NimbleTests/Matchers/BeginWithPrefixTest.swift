@@ -1,9 +1,6 @@
 import Foundation
 import Nimble
 import XCTest
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
 final class BeginWithPrefixTest: XCTestCase {
 

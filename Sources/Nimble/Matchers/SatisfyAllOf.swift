@@ -5,14 +5,21 @@ public func satisfyAllOf<T>(_ predicates: Predicate<T>...) -> Predicate<T> {
 }
 
 /// A Nimble matcher that succeeds when the actual value matches with all of the matchers
+/// provided in the variable list of matchers.
+@available(*, deprecated, message: "Use Predicate instead")
+public func satisfyAllOf<T, U>(_ matchers: U...) -> Predicate<T>
+    where U: Matcher, U.ValueType == T {
+        return satisfyAllOf(matchers.map { $0.predicate })
+}
+
+/// A Nimble matcher that succeeds when the actual value matches with all of the matchers
 /// provided in the array of matchers.
 public func satisfyAllOf<T>(_ predicates: [Predicate<T>]) -> Predicate<T> {
     return Predicate.define { actualExpression in
-        let cachedExpression = actualExpression.withCaching()
         var postfixMessages = [String]()
         var status: PredicateStatus = .matches
         for predicate in predicates {
-            let result = try predicate.satisfies(cachedExpression)
+            let result = try predicate.satisfies(actualExpression)
             if result.status == .fail {
                 status = .fail
             } else if result.status == .doesNotMatch, status != .fail {
@@ -22,7 +29,7 @@ public func satisfyAllOf<T>(_ predicates: [Predicate<T>]) -> Predicate<T> {
         }
 
         var msg: ExpectationMessage
-        if let actualValue = try cachedExpression.evaluate() {
+        if let actualValue = try actualExpression.evaluate() {
             msg = .expectedCustomValueTo(
                 "match all of: " + postfixMessages.joined(separator: ", and "),
                 actual: "\(actualValue)"
@@ -45,9 +52,9 @@ public func && <T>(left: Predicate<T>, right: Predicate<T>) -> Predicate<T> {
 import class Foundation.NSObject
 
 extension NMBPredicate {
-    @objc public class func satisfyAllOfMatcher(_ predicates: [NMBPredicate]) -> NMBPredicate {
+    @objc public class func satisfyAllOfMatcher(_ matchers: [NMBMatcher]) -> NMBPredicate {
         return NMBPredicate { actualExpression in
-            if predicates.isEmpty {
+            if matchers.isEmpty {
                 return NMBPredicateResult(
                     status: NMBPredicateStatus.fail,
                     message: NMBExpectationMessage(
@@ -57,9 +64,20 @@ extension NMBPredicate {
             }
 
             var elementEvaluators = [Predicate<NSObject>]()
-            for predicate in predicates {
+            for matcher in matchers {
                 let elementEvaluator = Predicate<NSObject> { expression in
-                    return predicate.satisfies({ try expression.evaluate() }, location: actualExpression.location).toSwift()
+                    if let predicate = matcher as? NMBPredicate {
+                        return predicate.satisfies({ try expression.evaluate() }, location: actualExpression.location).toSwift()
+                    } else {
+                        let failureMessage = FailureMessage()
+                        let success = matcher.matches(
+                            // swiftlint:disable:next force_try
+                            { try! expression.evaluate() },
+                            failureMessage: failureMessage,
+                            location: actualExpression.location
+                        )
+                        return PredicateResult(bool: success, message: failureMessage.toExpectationMessage())
+                    }
                 }
 
                 elementEvaluators.append(elementEvaluator)

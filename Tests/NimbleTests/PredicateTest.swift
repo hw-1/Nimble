@@ -1,8 +1,5 @@
 import XCTest
 import Nimble
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
 final class PredicateTest: XCTestCase {
     func testDefineDefaultMessage() {

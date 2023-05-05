@@ -1,8 +1,5 @@
 import XCTest
 import Nimble
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
 final class UserDescriptionTest: XCTestCase {
     func testToMatcher_CustomFailureMessage() {
@@ -38,7 +35,6 @@ final class UserDescriptionTest: XCTestCase {
         }
     }
 
-    #if !os(WASI)
     func testToEventuallyMatch_CustomFailureMessage() {
         failsWithErrorMessage(
             """
@@ -71,6 +67,5 @@ final class UserDescriptionTest: XCTestCase {
             expect { 1 }.toEventuallyNot(equal(1), description: "These are eventually equal!")
         }
     }
-    #endif // #if !os(WASI)
 
 }

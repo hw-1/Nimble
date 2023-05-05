@@ -1,8 +1,5 @@
 import XCTest
 import Nimble
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
 enum NimbleError: Error {
     case laugh

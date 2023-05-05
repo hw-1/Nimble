@@ -18,7 +18,7 @@
 //  IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
-#if (os(macOS) || os(iOS)) && (arch(x86_64) || arch(arm64))
+#if (os(macOS) || os(iOS)) && arch(x86_64)
 
 import Foundation
 
@@ -26,9 +26,9 @@ import Foundation
 	import CwlMachBadInstructionHandler
 #endif
 
-var raiseBadInstructionException = {
+private func raiseBadInstructionException() {
 	BadInstructionException().raise()
-} as @convention(c) () -> Void
+}
 
 /// A simple NSException subclass. It's not required to subclass NSException (since the exception type is represented in the name) but this helps for identifying the exception through runtime type.
 @objc(BadInstructionException)
@@ -45,47 +45,44 @@ public class BadInstructionException: NSException {
 	
 	/// An Objective-C callable function, invoked from the `mach_exc_server` callback function `catch_mach_exception_raise_state` to push the `raiseBadInstructionException` function onto the stack.
 	@objc(receiveReply:)
-	public class func receiveReply(_ reply: bad_instruction_exception_reply_t) -> CInt {
-		let old_state = UnsafeRawPointer(reply.old_state!).bindMemory(to: NativeThreadState.self, capacity: 1)
+	public class func receiveReply(_ value: NSValue) -> NSNumber {
+		var reply = bad_instruction_exception_reply_t(exception_port: 0, exception: 0, code: nil, codeCnt: 0, flavor: nil, old_state: nil, old_stateCnt: 0, new_state: nil, new_stateCnt: nil)
+		withUnsafeMutablePointer(to: &reply) { value.getValue(UnsafeMutableRawPointer($0)) }
+		
+		let old_state: UnsafePointer<natural_t> = reply.old_state!
 		let old_stateCnt: mach_msg_type_number_t = reply.old_stateCnt
-		let new_state = UnsafeMutableRawPointer(reply.new_state!).bindMemory(to: NativeThreadState.self, capacity: 1)
+		let new_state: thread_state_t = reply.new_state!
 		let new_stateCnt: UnsafeMutablePointer<mach_msg_type_number_t> = reply.new_stateCnt!
 		
 		// Make sure we've been given enough memory
-		guard
-			old_stateCnt == nativeThreadStateCount,
-			new_stateCnt.pointee >= nativeThreadStateCount
-		else {
-			return KERN_INVALID_ARGUMENT
+		if old_stateCnt != x86_THREAD_STATE64_COUNT || new_stateCnt.pointee < x86_THREAD_STATE64_COUNT {
+			return NSNumber(value: KERN_INVALID_ARGUMENT)
 		}
 		
-		// 0. Copy over the state.
-		new_state.pointee = old_state.pointee
+		// Read the old thread state
+		var state = old_state.withMemoryRebound(to: x86_thread_state64_t.self, capacity: 1) { return $0.pointee }
 		
-#if arch(x86_64)
 		// 1. Decrement the stack pointer
-		new_state.pointee.__rsp -= UInt64(MemoryLayout<Int>.size)
+		state.__rsp -= __uint64_t(MemoryLayout<Int>.size)
 		
 		// 2. Save the old Instruction Pointer to the stack.
-		guard let pointer = UnsafeMutablePointer<UInt64>(bitPattern: UInt(new_state.pointee.__rsp)) else {
-			return KERN_INVALID_ARGUMENT
+		if let pointer = UnsafeMutablePointer<__uint64_t>(bitPattern: UInt(state.__rsp)) {
+			pointer.pointee = state.__rip
+		} else {
+			return NSNumber(value: KERN_INVALID_ARGUMENT)
 		}
-		pointer.pointee = old_state.pointee.__rip
-				
+		
 		// 3. Set the Instruction Pointer to the new function's address
-		new_state.pointee.__rip = unsafeBitCast(raiseBadInstructionException, to: UInt64.self)
+		var f: @convention(c) () -> Void = raiseBadInstructionException
+		withUnsafePointer(to: &f) {
+			state.__rip = $0.withMemoryRebound(to: __uint64_t.self, capacity: 1) { return $0.pointee }
+		}
 		
-#elseif arch(arm64)
-		// 1. Set the link register to the current address.
-		new_state.pointee.__lr = old_state.pointee.__pc
+		// Write the new thread state
+		new_state.withMemoryRebound(to: x86_thread_state64_t.self, capacity: 1) { $0.pointee = state }
+		new_stateCnt.pointee = x86_THREAD_STATE64_COUNT
 		
-		// 2. Set the Instruction Pointer to the new function's address.
-		new_state.pointee.__pc = unsafeBitCast(raiseBadInstructionException, to: UInt64.self)
-#endif
-
-		new_stateCnt.pointee = nativeThreadStateCount
-		
-		return KERN_SUCCESS
+		return NSNumber(value: KERN_SUCCESS)
 	}
 }
 

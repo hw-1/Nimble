@@ -1,11 +1,8 @@
 import Foundation
 import XCTest
 import Nimble
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
-final class EqualTest: XCTestCase { // swiftlint:disable:this type_body_length
+final class EqualTest: XCTestCase {
     func testEquality() {
         expect(1 as CInt).to(equal(1 as CInt))
         expect(1 as CInt).to(equal(1))
@@ -43,44 +40,11 @@ final class EqualTest: XCTestCase { // swiftlint:disable:this type_body_length
         }
     }
 
-    func testArrayEqualityWithOptionalElement() {
-        let array: [String] = [""]
-        let getString: () -> String? = { return "" }
-
-        expect(array) == [getString()] as [String?]
-        expect(array) == ([getString()] as [String?])
-
-        expect(array).to(equal([getString()]))
-        expect(array) == [getString()]
-
-        let optionalString = getString()
-        expect(array) == [optionalString]
-    }
-
-    func testDictEqualityWithOptionalElement() {
-        let dict: [String: String] = ["": ""]
-        let getString: () -> String? = { return "" }
-
-        expect(dict) == ["": getString()] as [String: String?]
-        expect(dict) == (["": getString()] as [String: String?])
-        expect(dict).to(equal(["": getString()]))
-        expect(dict) == ["": getString()]
-
-        let optionalString = getString()
-        expect(dict) == ["": optionalString]
-    }
-
     func testSetEquality() {
         expect(Set([1, 2])).to(equal(Set([1, 2])))
         expect(Set<Int>()).to(equal(Set<Int>()))
         expect(Set<Int>()) == Set<Int>()
         expect(Set([1, 2])) != Set<Int>()
-
-        let optionalSet: Set<Int?> = [1, 2]
-        expect(Set([1, 2])).to(equal(optionalSet))
-        expect(Set([1, 2, 3])).toNot(equal(optionalSet))
-        expect(Set([1, 2])) == optionalSet
-        expect(optionalSet) != Set([1, 2, 3])
 
         failsWithErrorMessageForNil("expected to equal <[1, 2]>, got <nil>") {
             expect(nil as Set<Int>?).to(equal(Set([1, 2])))
@@ -186,9 +150,11 @@ final class EqualTest: XCTestCase { // swiftlint:disable:this type_body_length
 
         failsWithErrorMessage("expected to equal <world>, got <hello>") {
             expect("hello") == "world"
+            return
         }
         failsWithErrorMessage("expected to not equal <hello>, got <hello>") {
             expect("hello") != "hello"
+            return
         }
     }
 
@@ -238,6 +204,7 @@ final class EqualTest: XCTestCase { // swiftlint:disable:this type_body_length
             let arrayOfOptionalInts: [Int?] = [nil, 2]
             let anotherArrayOfOptionalInts: [Int?] = [1, nil]
             expect(arrayOfOptionalInts).to(equal(anotherArrayOfOptionalInts))
+            return
         }
     }
 
@@ -286,47 +253,5 @@ final class EqualTest: XCTestCase { // swiftlint:disable:this type_body_length
         expect((1, "2", 3, four: "4")).to(equal((1, "2", 3, "4")))
         expect((1, "2", 3, four: "4", 5)).to(equal((1, "2", 3, "4", five: 5)))
         expect((1, "2", 3, four: "4", 5, "6")).to(equal((1, "2", 3, "4", five: 5, "6")))
-
-        expect((1, "2")) == (1, "2")
-        expect((1, two: "2")) == (1, two: "2")
-        expect((1, "2", 3)) == (1, "2", 3)
-        expect((1, "2", three: 3)) == (1, "2", three: 3)
-        expect((1, "2", 3, four: "4")) == (1, "2", 3, "4")
-        expect((1, "2", 3, four: "4", 5)) == (1, "2", 3, "4", five: 5)
-        expect((1, "2", 3, four: "4", 5, "6")) == (1, "2", 3, "4", five: 5, "6")
-    }
-
-    // see: https://github.com/Quick/Nimble/issues/867 and https://github.com/Quick/Nimble/issues/937
-    func testImplicitMemberSyntax() {
-        let xxx = Xxx(value: 123)
-        expect(xxx).to(equal(.init(value: 123)))
-        expect(xxx).toNot(equal(.init(value: 124)))
-        expect(xxx) == .init(value: 123)
-        expect(xxx) != .init(value: 124)
-
-        let set: Set<Xxx> = [xxx]
-        expect(set).to(equal(.init([Xxx(value: 123)])))
-        expect(set).toNot(equal(.init([Xxx(value: 124)])))
-        expect(set) == .init([Xxx(value: 123)])
-        expect(set) != .init([Xxx(value: 124)])
-
-        let yyy = Yyy(value: 456)
-        let comparableSet: Set<Yyy> = [yyy]
-        expect(comparableSet).to(equal(.init([Yyy(value: 456)])))
-        expect(comparableSet).toNot(equal(.init([Yyy(value: 457)])))
-        expect(comparableSet) == .init([Yyy(value: 456)])
-        expect(comparableSet) != .init([Yyy(value: 457)])
-    }
-}
-
-private struct Xxx: Hashable {
-    let value: Int
-}
-
-private struct Yyy: Comparable, Hashable {
-    let value: Int
-
-    static func < (lhs: Yyy, rhs: Yyy) -> Bool {
-        lhs.value < rhs.value
     }
 }

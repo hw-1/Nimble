@@ -1,9 +1,6 @@
 import Foundation
 import XCTest
 @testable import Nimble
-#if SWIFT_PACKAGE
-import NimbleSharedTestHelpers
-#endif
 
 final class BeIdenticalToTest: XCTestCase {
     func testBeIdenticalToPositive() {
@@ -44,6 +41,7 @@ final class BeIdenticalToTest: XCTestCase {
         let value = NSDate()
         expect(value).to(be(value))
         expect(1 as NSNumber).toNot(be("turtles" as NSString))
+        expect([1]).toNot(be([1]))
         expect([1 as NSNumber] as NSArray).toNot(be([1 as NSNumber] as NSArray))
 
         let value1 = NSArray()
